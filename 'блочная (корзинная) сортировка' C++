@@ -1,0 +1,250 @@
+//Блочная сортировка / Bucket sort
+void _newbucketsort(int* l, int* r, int* temp) {
+	if (r - l <= 64) {
+		insertionsort(l, r);
+		return;
+	}
+	int minz = *l, maxz = *l;
+	bool is_sorted = true;
+	for (int *i = l + 1; i < r; i++) {
+		minz = min(minz, *i);
+		maxz = max(maxz, *i);
+		if (*i < *(i - 1)) is_sorted = false;
+	}
+	if (is_sorted) return;
+	int diff = maxz - minz + 1;
+	int numbuckets;
+	if (r - l <= 1e7) numbuckets = 1500;
+	else numbuckets = 3000;
+	int range = (diff + numbuckets - 1) / numbuckets;
+	int* cnt = new int[numbuckets + 1];
+	for (int i = 0; i <= numbuckets; i++)
+		cnt[i] = 0;
+	int cur = 0;
+	for (int* i = l; i < r; i++) {
+		temp[cur++] = *i;
+		int ind = (*i - minz) / range;
+		cnt[ind + 1]++;
+	}
+	int sz = 0;
+	for (int i = 1; i <= numbuckets; i++)
+		if (cnt[i]) sz++;
+	int* run = new int[sz];
+	cur = 0;
+	for (int i = 1; i <= numbuckets; i++)
+		if (cnt[i]) run[cur++] = i - 1;
+	for (int i = 1; i <= numbuckets; i++)
+		cnt[i] += cnt[i - 1];
+	cur = 0;
+	for (int *i = l; i < r; i++) {
+		int ind = (temp[cur] - minz) / range;
+		*(l + cnt[ind]) = temp[cur];
+		cur++; 
+		cnt[ind]++;
+	}
+	for (int i = 0; i < sz; i++) {
+		int r = run[i];
+		if (r != 0) _newbucketsort(l + cnt[r - 1], l + cnt[r], temp);
+		else _newbucketsort(l, l + cnt[r], temp);
+	}
+	delete run;
+	delete cnt;
+}
+void newbucketsort(int* l, int* r) {
+	int *temp = new int[r - l];
+	_newbucketsort(l, r, temp);
+	delete temp;
+}
+
+//Битонная сортировка / Bitonic sort
+void bitseqsort(int* l, int* r, bool inv) {
+	if (r - l <= 1) return;
+	int *m = l + (r - l) / 2;
+	for (int *i = l, *j = m; i < m && j < r; i++, j++) {
+		if (inv ^ (*i > *j)) swap(*i, *j);
+	}
+	bitseqsort(l, m, inv);
+	bitseqsort(m, r, inv);
+}
+void makebitonic(int* l, int* r) {
+	if (r - l <= 1) return;
+	int *m = l + (r - l) / 2;
+	makebitonic(l, m);
+	bitseqsort(l, m, 0);
+	makebitonic(m, r);
+	bitseqsort(m, r, 1);
+}
+void bitonicsort(int* l, int* r) {
+	int n = 1;
+	int inf = *max_element(l, r) + 1;
+	while (n < r - l) n *= 2;
+	int* a = new int[n];
+	int cur = 0;
+	for (int *i = l; i < r; i++)
+		a[cur++] = *i;
+	while (cur < n) a[cur++] = inf;
+	makebitonic(a, a + n);
+	bitseqsort(a, a + n, 0);
+	cur = 0;
+	for (int *i = l; i < r; i++)
+		*i = a[cur++];
+	delete a;
+}
+
+# Блочная (корзинная) сортировка
+def bucket_sort(arr):
+    if len(arr) == 0:
+        return arr
+    
+    # Находим минимальное и максимальное значения
+    min_val, max_val = min(arr), max(arr)
+    
+    # Создаем корзины
+    bucket_count = len(arr)
+    buckets = [[] for _ in range(bucket_count)]
+    
+    # Распределяем элементы по корзинам
+    for num in arr:
+        index = int((num - min_val) / (max_val - min_val) * (bucket_count - 1))
+        buckets[index].append(num)
+    
+    # Сортируем каждую корзину и объединяем
+    result = []
+    for bucket in buckets:
+        result.extend(sorted(bucket))
+    
+    return result
+
+# Блинная сортировка
+def pancake_sort(arr):
+    def flip(subarray, k):
+        i = 0
+        while i < k // 2:
+            subarray[i], subarray[k - i - 1] = subarray[k - i - 1], subarray[i]
+            i += 1
+    
+    n = len(arr)
+    for curr_size in range(n, 1, -1):
+        # Находим индекс максимального элемента
+        max_idx = arr.index(max(arr[:curr_size]))
+        
+        # Если максимальный элемент не на своем месте
+        if max_idx != curr_size - 1:
+            # Переворачиваем до максимального элемента
+            if max_idx != 0:
+                flip(arr, max_idx + 1)
+            # Переворачиваем весь подмассив
+            flip(arr, curr_size)
+    
+    return arr
+
+# Сортировка бусинами (гравитационная)
+def bead_sort(arr):
+    if not arr or min(arr) < 0:
+        return arr
+    
+    # Создаем "абак" - матрицу бусин
+    max_val = max(arr)
+    beads = [[0] * len(arr) for _ in range(max_val)]
+    
+    # Расставляем бусины
+    for i, num in enumerate(arr):
+        for j in range(num):
+            beads[j][i] = 1
+    
+    # "Падаем" бусинами
+    for i in range(max_val):
+        sum_beads = sum(beads[i])
+        beads[i] = [0] * (len(arr) - sum_beads) + [1] * sum_beads
+    
+    # Собираем результат
+    result = [0] * len(arr)
+    for i in range(len(arr)):
+        for j in range(max_val):
+            result[i] += beads[j][i]
+    
+    return result
+
+# Поиск скачками
+def jump_search(arr, target):
+    n = len(arr)
+    step = int(n ** 0.5)
+    
+    # Находим блок, где может быть элемент
+    prev = 0
+    while arr[min(step, n) - 1] < target:
+        prev = step
+        step += int(n ** 0.5)
+        if prev >= n:
+            return -1
+    
+    # Линейный поиск в найденном блоке
+    for i in range(prev, min(step, n)):
+        if arr[i] == target:
+            return i
+    
+    return -1
+
+# Экспоненциальный поиск
+def exponential_search(arr, target):
+    if arr[0] == target:
+        return 0
+    
+    n = len(arr)
+    i = 1
+    while i < n and arr[i] <= target:
+        i *= 2
+    
+    # Бинарный поиск в найденном диапазоне
+    left = i // 2
+    right = min(i, n - 1)
+    
+    while left <= right:
+        mid = (left + right) // 2
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+    
+    return -1
+
+# Тернарный поиск
+def ternary_search(arr, target):
+    def ternary_recursive(left, right):
+        if left > right:
+            return -1
+        
+        mid1 = left + (right - left) // 3
+        mid2 = right - (right - left) // 3
+        
+        if arr[mid1] == target:
+            return mid1
+        if arr[mid2] == target:
+            return mid2
+        
+        if target < arr[mid1]:
+            return ternary_recursive(left, mid1 - 1)
+        elif target > arr[mid2]:
+            return ternary_recursive(mid2 + 1, right)
+        else:
+            return ternary_recursive(mid1 + 1, mid2 - 1)
+    
+    return ternary_recursive(0, len(arr) - 1)
+
+# Тестирование
+if __name__ == "__main__":
+    arr = [64, 34, 25, 12, 22, 11, 90]
+    
+    print("Исходный массив:", arr)
+    print("Блочная сортировка:", bucket_sort(arr.copy()))
+    print("Блинная сортировка:", pancake_sort(arr.copy()))
+    print("Сортировка бусинами:", bead_sort([3, 1, 4, 1, 5]))
+    
+    sorted_arr = sorted(arr)
+    target = 25
+    print(f"\nПоиск {target} в отсортированном массиве:")
+    print("Поиск скачками:", jump_search(sorted_arr, target))
+    print("Экспоненциальный поиск:", exponential_search(sorted_arr, target))
+    print("Тернарный поиск:", ternary_search(sorted_arr, target))
